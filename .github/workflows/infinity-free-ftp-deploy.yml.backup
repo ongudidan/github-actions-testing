@@ -1,0 +1,85 @@
+name: Deploy to InfinityFree
+# Run manually or on push to the main branch
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Clone the latest code from GitHub
+      - name: Get latest code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up PHP and Composer
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+
+      # Step 3: Cache Composer packages
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      # Step 4: Generate production .env from GitHub Secret
+      - name: Create production .env file
+        env:
+          PRODUCTION_ENV_FILE: ${{ secrets.PRODUCTION_ENV_FILE }}
+        run: |
+          if [ -z "$PRODUCTION_ENV_FILE" ]; then
+            echo "ERROR: PRODUCTION_ENV_FILE secret is missing."
+            exit 1
+          fi
+
+          printf '%s' "$PRODUCTION_ENV_FILE" > .env
+          chmod 600 .env
+
+      # Step 5: Install production dependencies only
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts
+
+      # Step 6: Discover packages if artisan exists
+      - name: Run Laravel package discovery
+        run: |
+          if [ -f artisan ]; then
+            php artisan package:discover --ansi
+          fi
+
+      # Step 7: Upload code via FTP
+      - name: Deploy to InfinityFree via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftpupload.net
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /htdocs/
+          timeout: 86400000
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github*/**
+            tests/**
+            node_modules/**
+            README.md
+
+      # Step 8: Remove temporary .env from GitHub runner
+      - name: Clean up temporary environment file
+        if: always()
+        run: rm -f .env
