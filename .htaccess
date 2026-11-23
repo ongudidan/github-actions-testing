@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Deny access to sensitive files like .env
+    RewriteRule ^\.env - [F,L,NC]
+    RewriteRule ^\.(?!well-known).* - [F,L,NC]
+
+    # Redirect all incoming traffic to the public/ folder
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

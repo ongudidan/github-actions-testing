@@ -5,22 +5,13 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "packages/ongudidan/laravel-multi-2fa",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "require": {
         "php": "^8.3",
         "laravel/fortify": "^1.41",
         "laravel/framework": "^13.17",
         "laravel/passkeys": "^0.2.1",
         "laravel/tinker": "^3.0",
-        "ongudidan/laravel-multi-2fa": "*@dev",
+        "ongudidan/laravel-multi-2fa": "^1.0.3",
         "spatie/laravel-medialibrary": "^11.23"
     },
     "require-dev": {
