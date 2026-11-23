@@ -79,28 +79,26 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
-          lftp -e "
-            set net:timeout 30;
-            set net:max-retries 3;
-            set net:reconnect-interval-base 5;
-            set ftp:ssl-allow no;
-            set ftp:passive-mode true;
-            open $FTP_SERVER;
-            user \"$FTP_USERNAME\" \"$FTP_PASSWORD\";
-            mirror --reverse \
-                   --continue \
-                   --only-newer \
-                   --parallel=2 \
-                   --verbose \
-                   --exclude-glob .git* \
-                   --exclude-glob .github/ \
-                   --exclude-glob tests/ \
-                   --exclude-glob node_modules/ \
-                   --exclude-glob *.backup \
-                   --exclude README.md \
-                   ./ htdocs/;
-            bye;
-          "
+          lftp <<EOF
+          set net:timeout 30
+          set net:max-retries 3
+          set ftp:ssl-allow false
+          set ftp:passive-mode true
+          open -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER"
+          mirror --reverse \
+                 --continue \
+                 --only-newer \
+                 --parallel=2 \
+                 --verbose \
+                 --exclude-glob .git* \
+                 --exclude-glob .github/ \
+                 --exclude-glob tests/ \
+                 --exclude-glob node_modules/ \
+                 --exclude-glob *.backup \
+                 --exclude README.md \
+                 ./ htdocs/
+          bye
+          EOF
 
       # Step 10: Remove temporary .env from GitHub runner
       - name: Clean up temporary environment file
