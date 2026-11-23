@@ -1,0 +1,48 @@
+
+name: Deploy to InfinityFree
+
+# Run manually or on push to the main branch
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Clone the latest code from GitHub
+      - name: Get latest code
+        uses: actions/checkout@v4
+
+      # Step 2: Generate production .env from GitHub Secret
+      - name: Create production .env file
+        env:
+          PRODUCTION_ENV_FILE: ${{ secrets.PRODUCTION_ENV_FILE }}
+        run: |
+          if [ -z "$PRODUCTION_ENV_FILE" ]; then
+            echo "ERROR: PRODUCTION_ENV_FILE secret is missing."
+            exit 1
+          fi
+
+          printf '%s' "$PRODUCTION_ENV_FILE" > .env
+          chmod 600 .env
+
+      # Step 3: Upload code via FTP
+      - name: Deploy to InfinityFree via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftpupload.net
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /htdocs/  # For addon domains
+          timeout: 86400000
+          log-level: standard
+
+      # Step 4: Remove temporary .env from GitHub runner
+      - name: Clean up temporary environment file
+        if: always()
+        run: rm -f .env
